@@ -1,0 +1,58 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import os
+
+driver = webdriver.Chrome('c:/chromedriver')
+
+driver.implicitly_wait(3)
+
+# driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')
+# driver.find_element_by_name('username').send_keys('bangae20@gmail.com')
+# driver.find_element_by_name('password').send_keys('tlsWkdrn1!')
+# driver.find_element_by_class_name('_5f5mN').click()
+
+driver.get("https://www.instagram.com/____voguish_/")
+driver.implicitly_wait(5)
+# row
+# rows = driver.find_elements(By.CSS_SELECTOR,'div.Nnq7C')
+#
+# for row in rows:
+     # col = row.find_elements_by_class_name('v1Nh3 kIKUG  _bz0w')
+cols = driver.find_elements(By.CSS_SELECTOR, 'div.v1Nh3._bz0w')
+
+for col in cols:
+    col.find_element_by_tag_name('a').click()
+    detail = ''+driver.find_element(By.CSS_SELECTOR, 'div.PdwC2').find_element(By.CSS_SELECTOR, "div.C4VMK").find_element(By.TAG_NAME, "span").text
+    detail_end = detail.index("\n")
+    path = "c:/img/"+detail[0:detail_end]
+
+    try:
+        os.mkdir(path)
+        arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        for ii in arr:
+            src = ''
+            try:
+
+                ul = driver.find_element(By.CSS_SELECTOR, 'div.PdwC2')
+                lis = ul.find_elements(By.CSS_SELECTOR, 'li._-1_m6')
+                src = lis[ii].find_element_by_tag_name("img").get_attribute("src")
+                imgdriver = webdriver.Chrome('c:/chromedriver')
+                imgdriver.get(src)
+                imgdriver.implicitly_wait(10)
+                body = imgdriver.find_element(By.TAG_NAME, 'body')
+                sidx = src.rindex('.')
+                print(path + "/img" + str(ii) + src[sidx:])
+                imgdriver.get_screenshot_as_file(path + "/img" + str(ii) + src[sidx:])
+                imgdriver.close()
+                driver.find_element(By.CSS_SELECTOR, 'div.coreSpriteRightChevron').click()
+            except Exception:
+                print('end')
+    except Exception:
+        print('폴더존재함')
+
+
+    f = open(str(path) + "/detail.txt", mode='wt', encoding='utf-8')
+    f.write(detail)
+    f.close()
+    driver.find_element(By.CSS_SELECTOR, 'button.ckWGn').click()
+
