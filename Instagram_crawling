@@ -1,58 +1,106 @@
+import os
+import time
+from io import BytesIO
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-import os
+import uuid
 
-driver = webdriver.Chrome('c:/chromedriver')
+rootPath = 'c:/img/'
+def newChrome() :
+    return webdriver.Chrome("d:/chromedriver")
 
-driver.implicitly_wait(3)
+def connectUrl(driver, url) :
+    driver.get(url)
 
-# driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')
-# driver.find_element_by_name('username').send_keys('bangae20@gmail.com')
-# driver.find_element_by_name('password').send_keys('tlsWkdrn1!')
-# driver.find_element_by_class_name('_5f5mN').click()
+def getRows(driver, css_selector):
+    return driver.find_elements(By.CSS_SELECTOR, css_selector)
 
-driver.get("https://www.instagram.com/____voguish_/")
-driver.implicitly_wait(5)
-# row
-# rows = driver.find_elements(By.CSS_SELECTOR,'div.Nnq7C')
-#
-# for row in rows:
-     # col = row.find_elements_by_class_name('v1Nh3 kIKUG  _bz0w')
-cols = driver.find_elements(By.CSS_SELECTOR, 'div.v1Nh3._bz0w')
+def getCols(row, css_selector):
+    return row.find_elements(By.CSS_SELECTOR, css_selector)
 
-for col in cols:
-    col.find_element_by_tag_name('a').click()
-    detail = ''+driver.find_element(By.CSS_SELECTOR, 'div.PdwC2').find_element(By.CSS_SELECTOR, "div.C4VMK").find_element(By.TAG_NAME, "span").text
-    detail_end = detail.index("\n")
-    path = "c:/img/"+detail[0:detail_end]
+def getModal(driver, css_selector):
+    return driver.find_element(By.CSS_SELECTOR, css_selector)
 
+def getImagelis(modal, css_selector):
+    return modal.find_elements(By.CSS_SELECTOR, css_selector)
+
+def imageSave(modal, li, imgCnt, css_selector):
+    img = li.find_element(By.CSS_SELECTOR, css_selector)
+    path = saveHeader(modal, 'div.C4VMK')
+    src = img.get_attribute("src")
+    sIdx = src.rindex('.')
+    eIdx = len(src)
     try:
-        os.mkdir(path)
-        arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        for ii in arr:
-            src = ''
-            try:
+        eIdx = src.rindex('?')
+    except Exception :
+        print()
+    etc = src[sIdx: eIdx]
+    imgDrive = newChrome()
+    imgDrive.get(src)
+    time.sleep(1)
 
-                ul = driver.find_element(By.CSS_SELECTOR, 'div.PdwC2')
-                lis = ul.find_elements(By.CSS_SELECTOR, 'li._-1_m6')
-                src = lis[ii].find_element_by_tag_name("img").get_attribute("src")
-                imgdriver = webdriver.Chrome('c:/chromedriver')
-                imgdriver.get(src)
-                imgdriver.implicitly_wait(10)
-                body = imgdriver.find_element(By.TAG_NAME, 'body')
-                sidx = src.rindex('.')
-                print(path + "/img" + str(ii) + src[sidx:])
-                imgdriver.get_screenshot_as_file(path + "/img" + str(ii) + src[sidx:])
-                imgdriver.close()
-                driver.find_element(By.CSS_SELECTOR, 'div.coreSpriteRightChevron').click()
-            except Exception:
-                print('end')
+    imgElement = imgDrive.find_element(By.TAG_NAME, 'img')
+    location = imgElement.location
+    size = imgElement.size
+    # imgDrive.save_screenshot("c:/img/" + path + '/'+'img' + str(imgCnt) + etc)
+    png = imgDrive.get_screenshot_as_png()
+    im = Image.open(BytesIO(png))
+
+    left = location['x']
+    top = location['y']
+    right = location['x'] + size['width']
+    bottom = location['y'] + size['height']
+
+    im = im.crop((left, top, right, bottom))
+    im.save("c:/img/" + path + '/'+'img' + str(imgCnt) +".png", "PNG")
+    imgDrive.close()
+
+def saveHeader(li, css_selector):
+    imgDiv = li.find_element(By.CSS_SELECTOR, css_selector)
+    header = imgDiv.find_element(By.TAG_NAME, "span").text
+    eIdx = str(header).find('\n', 1)
+    path = header[0:eIdx]
+    try:
+        mkdir(path)
+        f = open(rootPath + path + "/detail.txt", mode='w', encoding='utf-8')
+        f.write(header)
+        f.close()
     except Exception:
-        print('폴더존재함')
+        print('폴더있음')
+    return path
+
+def mkdir(path):
+    os.mkdir(rootPath+path)
 
 
-    f = open(str(path) + "/detail.txt", mode='wt', encoding='utf-8')
-    f.write(detail)
-    f.close()
-    driver.find_element(By.CSS_SELECTOR, 'button.ckWGn').click()
+def clickEvent(driver, css_selector):
+    driver.find_element(By.CSS_SELECTOR, css_selector).click()
 
+
+
+
+def main():
+    driver = newChrome()
+    connectUrl(driver, 'https://www.instagram.com/____voguish_/?hl=ko')
+    time.sleep(3)
+    rows = getRows(driver, "div.Nnq7C.weEfm")
+    imgCnt = 1
+    for row in rows :
+        cnt = 1
+        cols = getCols(row, 'div.v1Nh3')
+        for col in cols:
+            clickEvent(col, 'a')
+            time.sleep(2)
+            modal = getModal(driver, 'div._2dDPU')
+            lis = getImagelis(modal, 'li._-1_m6')
+            for li in lis:
+                try :
+                    imageSave(modal, li, imgCnt, 'img')
+                    clickEvent(modal, 'div.coreSpriteRightChevron')
+                    imgCnt = imgCnt + 1
+                except Exception :
+                    print('end')
+                    clickEvent(modal, 'button.ckWGn')
+            cnt = cnt + 1
+main()
