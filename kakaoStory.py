@@ -49,8 +49,8 @@ def kakaoLogin():
 
 def kakaoLogin2(cusDriver):
     cusDriver.get('https://accounts.kakao.com/login/kakaostory')
-    sendKey2(cusDriver,'input#loginEmail', 'bangae2@gmail.com')
-    sendKey2(cusDriver,'input#loginPw', 'fpdlwms1@')
+    sendKey2(cusDriver,'input#loginEmail', '@gmail.com')
+    sendKey2(cusDriver,'input#loginPw', '@')
     time.sleep(2)
     click2(cusDriver, 'button.btn_login')
     time.sleep(2)
