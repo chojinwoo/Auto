@@ -55,18 +55,20 @@ def driverClick(cusDriver ,css_selector):
     cusDriver.find_element(By.CSS_SELECTOR, css_selector).click()
 
 
-def newTab():
-    driver.execute_script('''window.open("about:blank", "_blank");''')
+def newTab(url):
+    driver.execute_script("window.open('" + url + "')")
     handles = driver.window_handles
-    driver.current_window_handle
     tab = handles[len(handles) - 1]
     driver.switch_to.window(tab)
 
-def closeTab():
-    driver.execute_script('self.close()')
+def closeTab(tabIdx):
+    driver.close()
     handles = driver.window_handles
-    tab = handles[len(handles) -1]
-    driver.switch_to.window(tab)
+    try :
+        driver.switch_to.window(handles[tabIdx])
+    except Exception :
+        driver.switch_to.window(handles[0])
+
 
 
 def mkdir(path):
@@ -87,12 +89,11 @@ def saveFile(path, name, str) :
     f.close()
 
 def refreshPrevention() :
-    current = driver.current_window_handle
     handlers = driver.window_handles
     main = handlers[0]
     driver.switch_to.window(main)
-    time.sleep(1)
-    driver.switch_to.window(current)
+    time.sleep(0.5)
+    driver.switch_to.window(handlers[len(handlers) -1])
 
 def saveImage(path, imgCnt):
     mkdir(path)
@@ -109,8 +110,17 @@ def saveImage(path, imgCnt):
 
     im.save(rootPath + "/" + path + '/' + 'img' + str(imgCnt) + ".png", "PNG")
 
-def main():
+def modalRemove() :
+    imgs = getElements('div>div>img')
+    for img in  imgs :
+        src = img.get_attribute("src")
+        if src == 'https://gw.alicdn.com/tfs/TB1q0IgvTmWBKNjSZFBXXXxUFXa-55-55.png' :
+            img.click()
+
+def main(startIdx):
     getUrl('https://m.1688.com/winport/zhicongxi.html?share_business_id=_shop&userid=jaeyoungcho&share_token=sNQceRUVz3li/HtehdL21OqDwDFjvPDE6NbwoJote2YUr8ETA6iQHg==&spm=a262eq.8992535/20180919.5103953.0')
+    time.sleep(2)
+    modalRemove()
     elementsClick('a.nav-item-btn',1)
     time.sleep(2)
     scroll()
@@ -120,55 +130,69 @@ def main():
     for table in tables :
         items = getDriverElements(table, 'div.item')
         for item in items :
-            description = getDriverElement(item, 'p.table')
-            ja = loop.run_until_complete(translator.translate(description.text, dest='ko'))
-            title = ''
-            title = title + description.text +'\r\n'
-            title = title + ja.text + '\r\n'
-            saveFile(ja.text, 'title.txt', title)
-            # 아이템 선택후 해당페이지 탭으로 호출
-            href = getDriverElement(item, 'a').get_attribute("href")
-            newTab()
-            driver.get(href)
-            jqueryScroll()
-            time.sleep(3)
-            container = getElement('#description-content')
-            imgs = getDriverElements(container, 'img')
-            imgCnt = 1
-            # 이미지추출
-            for img in imgs :
-                src = img.get_attribute('src')
-                newTab()
-                driver.get(src)
-                saveImage(ja.text, str(imgCnt))
-                imgCnt = imgCnt + 1
-                closeTab()
-                refreshPrevention()
+            if startIdx <= itemCnt :
+                description = getDriverElement(item, 'p.table')
+                ja = loop.run_until_complete(translator.translate(description.text, dest='ko'))
+                title = ''
+                title = title + description.text +'\r\n'
+                title = title + ja.text + '\r\n'
+                saveFile(ja.text, 'title.txt', title)
+                # 아이템 선택후 해당페이지 탭으로 호출
+                href = getDriverElement(item, 'a').get_attribute("href")
+                newTab(href)
+                time.sleep(2)
+                jqueryScroll()
+                time.sleep(1)
+                modalRemove()
+                container = getElement('#description-content')
+                imgs = getDriverElements(container, 'img')
+                imgCnt = 1
+                # 이미지추출
+                for img in imgs :
+                    src = img.get_attribute('src')
+                    newTab(src)
+                    saveImage(ja.text, str(imgCnt))
+                    imgCnt = imgCnt + 1
+                    closeTab(1)
+                    # time.sleep()
+                    refreshPrevention()
 
-            driver.execute_script("$('#J_M_Detail_PageLayoutContent').scrollTop(0)")
-            # 상세정보추출
-            getElements('div.tab-item')[1].click()
-            d_content = getElement('div.m-detail-tab')
-            lis = getDriverElements(d_content, 'li')
-            detail_ch = ''
-            detail_ko = ''
-            for li in lis :
-                name = getDriverElement(li, 'span.name').text
-                prop = getDriverElement(li, 'span.property').text
-                ko_name = loop.run_until_complete(translator.translate(name, dest='ko')).text
-                ko_prop = loop.run_until_complete(translator.translate(prop, dest='ko')).text
-                detail_ko = detail_ko + name + ' : ' + prop + '\r\n'
-                detail_ch = detail_ch + ko_name + ' : ' + ko_prop + '\r\n'
-            saveFile(ja.text, 'detail.txt', detail_ko + '\r\n\r\n\r\n\r\n\r\n' + detail_ch)
+                driver.execute_script("$('#J_M_Detail_PageLayoutContent').scrollTop(0)")
+                # 상세정보추출
+                getElements('div.tab-item')[1].click()
+                d_content = getElement('div.m-detail-tab')
+                lis = getDriverElements(d_content, 'li')
+                detail_ch = ''
+                detail_ko = ''
+                for li in lis :
+                    name = getDriverElement(li, 'span.name').text
+                    prop = getDriverElement(li, 'span.property').text
+                    ko_name = loop.run_until_complete(translator.translate(name, dest='ko')).text
+                    ko_prop = loop.run_until_complete(translator.translate(prop, dest='ko')).text
+                    detail_ko = detail_ko + ko_name + ' : ' + ko_prop + '\r\n'
+                    detail_ch = detail_ch + name + ' : ' + prop + '\r\n'
+                    # refreshPrevention()
+                saveFile(ja.text, 'detail.txt', detail_ko + '\r\n\r\n\r\n\r\n\r\n' + detail_ch)
+                closeTab(0)
+                driver.execute_script("$('#J_M_Detail_PageLayoutContent').scrollTop("+str(mainScrollHeight)+")")
             itemCnt = itemCnt + 1
-            closeTab()
-            driver.execute_script("$('#J_M_Detail_PageLayoutContent').scrollTop("+str(mainScrollHeight)+")")
 
 def test() :
-    getUrl('https://m.1688.com/offer/560389729163.html?offerId=560389729163')
-    time.sleep(5)
-    getElements('div.tab-item')[1].click()
-    time.sleep(200)
-main()
+    getUrl('https://m.1688.com/winport/zhicongxi.html?share_business_id=_shop&userid=jaeyoungcho&share_token=sNQceRUVz3li/HtehdL21OqDwDFjvPDE6NbwoJote2YUr8ETA6iQHg==&spm=a262eq.8992535/20180919.5103953.0')
+
+    # getUrl('https://m.1688.com/offer/560389729163.html?offerId=560389729163')
+    time.sleep(2)
+    modalRemove()
+    time.sleep(2)
+    href = getElements('a')[0].get_attribute("href")
+    newTab(href)
+    time.sleep(3)
+    newTab(href)
+    time.sleep(3)
+    driver.close()
+    handles = driver.window_handles
+    print(handles)
+
+main(5)
 
 # test()
